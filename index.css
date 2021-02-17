@@ -1,0 +1,46 @@
+#page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: paleturquoise;
+  text-align: center;
+  overflow: auto;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#color-codes {
+  margin-bottom: 10vh;
+  font-size: 2vmin;
+}
+
+button {
+  border: none;
+  background-color: #e1909b;
+  color: white;
+  font-size: 2vmin;
+  padding: 3vmin;
+  border-radius: 10px;
+  margin-bottom: 5vh;
+}
+
+button:hover {
+  opacity: 0.2;
+  cursor: pointer;
+}
+
+#color-codes > span {
+  padding-left: 0.5vw;
+  padding-right: 0.5vw;
+}
+
+#canvas {
+  background-color: white;
+  display: block;
+  margin: auto;
+}
+
+#menu > * {
+  visibility: inherit;
+}
