@@ -2,16 +2,15 @@
 "use strict";
 exports.__esModule = true;
 var minimax_1 = require("../models/minimax");
-var tree_1 = require("../models/tree");
 var view_1 = require("../views/view");
-// Given a message from the view, return some action
-var viewMessageToAction = new Map([
-    [0 /* Run */, function () { return view_1.animateMinimax(tree_1.TREE_DEPTH, minimax_1.runMinimax()); }],
-    [1 /* NewTree */, function () { return view_1.drawTree(tree_1.TREE_DEPTH, minimax_1.newTree()); }]
-]);
 window.addEventListener("load", function () {
     view_1.initView(messageFromView);
 });
+// Given a message from the view, return some action
+var viewMessageToAction = new Map([
+    [0 /* Run */, function () { return view_1.animateMinimax(); }],
+    [1 /* NewTree */, function () { return view_1.updateTree(minimax_1.newSimulation()); }]
+]);
 // Execute an action given a message from the view
 function messageFromView(message) {
     var action = viewMessageToAction.get(message);
@@ -23,73 +22,68 @@ function messageFromView(message) {
     }
 }
 
-},{"../models/minimax":2,"../models/tree":3,"../views/view":5}],2:[function(require,module,exports){
+},{"../models/minimax":2,"../views/view":5}],2:[function(require,module,exports){
 "use strict";
 exports.__esModule = true;
-exports.runMinimax = exports.newTree = void 0;
-var tree_1 = require("./tree");
-var root;
-function newTree() {
-    root = tree_1.buildTree();
-    return root;
-}
-exports.newTree = newTree;
-function runMinimax() {
+exports.newSimulation = void 0;
+var tree_1 = require("../tree");
+function newSimulation() {
     var animations = [];
-    max(root, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 0, animations);
+    var root = tree_1.buildTree();
+    max(root, root, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 0, animations);
     return animations;
 }
-exports.runMinimax = runMinimax;
-function max(gameTreeRoot, alpha, beta, depth, animations) {
-    gameTreeRoot.alpha = alpha;
-    gameTreeRoot.beta = beta;
-    gameTreeRoot.considered = true;
+exports.newSimulation = newSimulation;
+function max(root, node, alpha, beta, depth, animations) {
+    node.alpha = alpha;
+    node.beta = beta;
+    node.considered = true;
     animations.push(tree_1.deepTreeCopy(root));
     if (depth === tree_1.TREE_DEPTH) {
-        return gameTreeRoot.currentValue;
+        return node.currentValue;
     }
     else {
-        var children = [gameTreeRoot.left, gameTreeRoot.right];
-        gameTreeRoot.currentValue = Number.NEGATIVE_INFINITY;
+        var children = [node.left, node.right];
+        node.currentValue = Number.NEGATIVE_INFINITY;
         for (var i = 0; i < children.length; i++) {
-            gameTreeRoot.currentValue = Math.max(gameTreeRoot.currentValue, min(children[i], gameTreeRoot.alpha, gameTreeRoot.beta, depth + 1, animations));
-            gameTreeRoot.alpha = Math.max(gameTreeRoot.alpha, gameTreeRoot.currentValue);
-            if (gameTreeRoot.alpha >= gameTreeRoot.beta) {
+            node.currentValue = Math.max(node.currentValue, min(root, children[i], node.alpha, node.beta, depth + 1, animations));
+            node.alpha = Math.max(node.alpha, node.currentValue);
+            if (node.alpha >= node.beta) {
                 break;
             }
         }
         animations.push(tree_1.deepTreeCopy(root));
-        return gameTreeRoot.currentValue;
+        return node.currentValue;
     }
 }
-function min(gameTreeRoot, alpha, beta, depth, animations) {
-    gameTreeRoot.alpha = alpha;
-    gameTreeRoot.beta = beta;
-    gameTreeRoot.considered = true;
+function min(root, node, alpha, beta, depth, animations) {
+    node.alpha = alpha;
+    node.beta = beta;
+    node.considered = true;
     animations.push(tree_1.deepTreeCopy(root));
     if (depth === tree_1.TREE_DEPTH) {
-        return gameTreeRoot.currentValue;
+        return node.currentValue;
     }
     else {
-        var children = [gameTreeRoot.left, gameTreeRoot.right];
-        gameTreeRoot.currentValue = Number.POSITIVE_INFINITY;
+        var children = [node.left, node.right];
+        node.currentValue = Number.POSITIVE_INFINITY;
         for (var i = 0; i < children.length; i++) {
-            gameTreeRoot.currentValue = Math.min(gameTreeRoot.currentValue, max(children[i], gameTreeRoot.alpha, gameTreeRoot.beta, depth + 1, animations));
-            gameTreeRoot.beta = Math.min(gameTreeRoot.beta, gameTreeRoot.currentValue);
-            if (gameTreeRoot.alpha >= gameTreeRoot.beta) {
+            node.currentValue = Math.min(node.currentValue, max(root, children[i], node.alpha, node.beta, depth + 1, animations));
+            node.beta = Math.min(node.beta, node.currentValue);
+            if (node.alpha >= node.beta) {
                 break;
             }
         }
         animations.push(tree_1.deepTreeCopy(root));
-        return gameTreeRoot.currentValue;
+        return node.currentValue;
     }
 }
 
-},{"./tree":3}],3:[function(require,module,exports){
+},{"../tree":3}],3:[function(require,module,exports){
 "use strict";
 exports.__esModule = true;
 exports.deepTreeCopy = exports.buildTree = exports.TREE_DEPTH = void 0;
-var utils_1 = require("../utils");
+var utils_1 = require("./utils");
 exports.TREE_DEPTH = 4;
 function buildTree() {
     return buildTreeRecurse(exports.TREE_DEPTH);
@@ -128,7 +122,7 @@ var emptyNode = {
     right: null
 };
 
-},{"../utils":4}],4:[function(require,module,exports){
+},{"./utils":4}],4:[function(require,module,exports){
 "use strict";
 exports.__esModule = true;
 exports.vminToPx = exports.wait = exports.randomIntBetween = exports.deepObjectCopy = void 0;
@@ -195,7 +189,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 exports.__esModule = true;
-exports.drawTree = exports.animateMinimax = exports.initView = void 0;
+exports.animateMinimax = exports.initView = exports.updateTree = void 0;
+var tree_1 = require("../tree");
 var utils_1 = require("../utils");
 // Dimensions of canvas in relation to dimensions of the screen
 var CANVAS_HEIGHT_VMIN = 50;
@@ -211,8 +206,7 @@ var colors = {
     considered: "green",
     notConsidered: "pink",
     currentValue: "red",
-    alpha: "orange",
-    beta: "black"
+    orientation: "orange"
 };
 // Map a nodes value onto the string used to display it
 var numberToTextContent = new Map([
@@ -220,10 +214,22 @@ var numberToTextContent = new Map([
     [Number.NEGATIVE_INFINITY, "-∞"],
     [null, " "]
 ]);
+// Reference to the canvas
 var canvas = document.getElementById("canvas");
+// Reference to the 2D context of the canvas. This is what we actually work with when we draw things on the canvas
 var context = canvas.getContext("2d");
 // Function we use to talk to controller, passed in as a callback through initView()
 var notifyController;
+// The current list of animations we're working with
+var animations;
+// Keeps track of the current animation we're on
+var animationIndex = 0;
+function updateTree(anims) {
+    animations = anims;
+    animationIndex = 0;
+    drawTree();
+}
+exports.updateTree = updateTree;
 function initView(notif) {
     notifyController = notif;
     initCanvas();
@@ -231,27 +237,22 @@ function initView(notif) {
     notifyController(1 /* NewTree */);
 }
 exports.initView = initView;
-function animateMinimax(depth, animations) {
+function animateMinimax() {
     return __awaiter(this, void 0, void 0, function () {
-        var i;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     hideMenu();
-                    i = 0;
                     _a.label = 1;
                 case 1:
-                    if (!(i < animations.length)) return [3 /*break*/, 4];
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-                    drawBinaryTree(CANVAS_WIDTH_PX / 2, NODE_RADIUS * 2, depth, animations[i]);
+                    if (!(animationIndex < animations.length)) return [3 /*break*/, 3];
+                    drawTree();
                     return [4 /*yield*/, utils_1.wait(ANIMATION_DELAY)];
                 case 2:
                     _a.sent();
-                    _a.label = 3;
-                case 3:
-                    i++;
+                    animationIndex++;
                     return [3 /*break*/, 1];
-                case 4:
+                case 3:
                     showMenu();
                     return [2 /*return*/];
             }
@@ -259,21 +260,38 @@ function animateMinimax(depth, animations) {
     });
 }
 exports.animateMinimax = animateMinimax;
-function drawTree(depth, root) {
+function clearCanvas() {
     context.clearRect(0, 0, canvas.width, canvas.height);
-    drawBinaryTree(CANVAS_WIDTH_PX / 2, NODE_RADIUS * 2, depth, root);
 }
-exports.drawTree = drawTree;
+function drawTree() {
+    clearCanvas();
+    drawBinaryTree(CANVAS_WIDTH_PX / 2, NODE_RADIUS * 2, 0, animations[animationIndex]);
+}
+// Draw the previous tree in the animation, creating a 'step backward' effect
+function drawPrevtree() {
+    if (animationIndex > 0) {
+        animationIndex--;
+        drawTree();
+    }
+}
+// Draw the next tree in the animation, creating a 'step forward' effect
+function drawNextTree() {
+    if (animationIndex < animations.length - 1) {
+        animationIndex++;
+        drawTree();
+    }
+}
 function initCanvas() {
     canvas.width = CANVAS_WIDTH_PX;
     canvas.height = CANVAS_HEIGHT_PX;
     canvas.style.width = canvas.width + "px";
     canvas.style.height = canvas.height + "px";
-    context.font = NODE_RADIUS * 3 + "px Arial";
 }
 function initEventListeners() {
     document.getElementById("run").addEventListener("click", function () { return notifyController(0 /* Run */); });
     document.getElementById("new-tree").addEventListener("click", function () { return notifyController(1 /* NewTree */); });
+    document.getElementById("step-back").addEventListener("click", drawPrevtree);
+    document.getElementById("step-forward").addEventListener("click", drawNextTree);
 }
 function hideMenu() {
     document.getElementById("menu").style.visibility = "hidden";
@@ -285,17 +303,35 @@ function showMenu() {
 function drawBinaryTree(x, y, depth, gameNode) {
     var root = node(x, y);
     paintNode(x, y, root, gameNode);
-    if (depth > 0) {
-        var leftChildXCoord = x - NODE_RADIUS * Math.pow(2, depth + 1);
-        var rightChildXCoord = x + NODE_RADIUS * Math.pow(2, depth + 1);
-        var childYCoord = y + NODE_RADIUS * 14;
+    if (depth < tree_1.TREE_DEPTH) {
+        var leftChildXCoord = getChildXCoordinate(x, depth, -1);
+        var rightChildXCoord = getChildXCoordinate(x, depth, 1);
+        var childYCoord = getChildYCoordinate(y);
         var leftEdge = edge(x, y, leftChildXCoord, childYCoord);
         var rightEdge = edge(x, y, rightChildXCoord, childYCoord);
+        paintOrientation(x, y, depth);
         context.stroke(leftEdge);
         context.stroke(rightEdge);
-        drawBinaryTree(leftChildXCoord, childYCoord, depth - 1, gameNode.left);
-        drawBinaryTree(rightChildXCoord, childYCoord, depth - 1, gameNode.right);
+        drawBinaryTree(leftChildXCoord, childYCoord, depth + 1, gameNode.left);
+        drawBinaryTree(rightChildXCoord, childYCoord, depth + 1, gameNode.right);
     }
+}
+function getChildXCoordinate(x, depth, directionOffset) {
+    var depthScale = tree_1.TREE_DEPTH - depth;
+    return x + (directionOffset * NODE_RADIUS * Math.pow(2, depthScale + 1));
+}
+function getChildYCoordinate(y) {
+    var vertScale = 14;
+    return y + NODE_RADIUS * vertScale;
+}
+// Paint 'MIN' next to a node if it's a minimizer and vice versa
+function paintOrientation(x, y, depth) {
+    var orientationStr = depth % 2 == 0 ? "MAX" : "MIN";
+    var fontScale = 2;
+    var horizScale = 7;
+    context.font = NODE_RADIUS * fontScale + "px Arial";
+    context.fillStyle = colors.orientation;
+    context.fillText(orientationStr, x - horizScale * NODE_RADIUS, y);
 }
 // Paint a node and its value on the screen
 function paintNode(x, y, root, gameNode) {
@@ -307,20 +343,13 @@ function paintConsidered(root, gameNode) {
     context.fillStyle = gameNode.considered ? colors.considered : colors.notConsidered;
     context.fill(root);
 }
-function paintAlpha(x, y, alpha) {
-    var text = valueToStringRepresentation(alpha);
-    context.fillStyle = colors.alpha;
-    context.fillText(text, x - 4 * NODE_RADIUS, y);
-}
-function paintBeta(x, y, beta) {
-    var text = valueToStringRepresentation(beta);
-    context.fillStyle = colors.beta;
-    context.fillText(text, x + 2 * NODE_RADIUS, y);
-}
 function paintCurrentValue(x, y, val) {
     var text = valueToStringRepresentation(val);
+    var fontScale = 3;
+    var textYScale = 6;
+    context.font = NODE_RADIUS * fontScale + "px Arial";
     context.fillStyle = colors.currentValue;
-    context.fillText(text, x - NODE_RADIUS, y + 5 * NODE_RADIUS);
+    context.fillText(text, x - NODE_RADIUS * 1.5, y + textYScale * NODE_RADIUS);
 }
 // Convert a value to a string used to display it on the canvas
 function valueToStringRepresentation(val) {
@@ -344,4 +373,4 @@ function node(x, y) {
     return shape;
 }
 
-},{"../utils":4}]},{},[5,2,1]);
+},{"../tree":3,"../utils":4}]},{},[5,2,1]);

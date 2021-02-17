@@ -1,77 +1,69 @@
-import { BinaryGameNode } from "../binaryGameNode";
-import { buildTree, deepTreeCopy, TREE_DEPTH } from "./tree";
+import { Node, buildTree, deepTreeCopy, TREE_DEPTH } from "../tree";
 
-let root: BinaryGameNode;
+export function newSimulation() {
+    const animations: Node[] = [];
+    const root = buildTree();
 
-export function newTree() {
-    root = buildTree();
-
-    return root;
-}
-
-export function runMinimax() {
-    const animations: BinaryGameNode[] = [];
-
-    max(root, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 0, animations);
+    max(root, root, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 0, animations);
 
     return animations;
 }
 
-function max(gameTreeRoot: BinaryGameNode, alpha: number, beta: number, depth: number, animations: BinaryGameNode[]) { 
-    gameTreeRoot.alpha = alpha; 
-    gameTreeRoot.beta = beta; 
-    gameTreeRoot.considered = true;
+function max(root: Node, node: Node, alpha: number, beta: number, depth: number, animations: Node[]) { 
+    node.alpha = alpha; 
+    node.beta = beta; 
+    node.considered = true;
 
     animations.push(deepTreeCopy(root)); 
 
     if (depth === TREE_DEPTH) {
-        return gameTreeRoot.currentValue;
+        return node.currentValue;
     } else {
-        const children = [gameTreeRoot.left, gameTreeRoot.right];
+        const children = [node.left, node.right];
 
-        gameTreeRoot.currentValue = Number.NEGATIVE_INFINITY;
+        node.currentValue = Number.NEGATIVE_INFINITY;
 
         for (let i = 0; i < children.length; i++) {
-            gameTreeRoot.currentValue = Math.max(gameTreeRoot.currentValue, min(children[i], gameTreeRoot.alpha, gameTreeRoot.beta, depth + 1, animations));
-            gameTreeRoot.alpha = Math.max(gameTreeRoot.alpha, gameTreeRoot.currentValue);
+            node.currentValue = Math.max(node.currentValue, min(root, children[i], node.alpha, node.beta, depth + 1, animations));
+            node.alpha = Math.max(node.alpha, node.currentValue);
 
-            if (gameTreeRoot.alpha >= gameTreeRoot.beta) {
+            if (node.alpha >= node.beta) {
                 break;
             }
         }
 
         animations.push(deepTreeCopy(root)); 
 
-        return gameTreeRoot.currentValue;
+        return node.currentValue;
     }
 }
 
-function min(gameTreeRoot: BinaryGameNode, alpha: number, beta: number, depth: number, animations: BinaryGameNode[]) {
-    gameTreeRoot.alpha = alpha; 
-    gameTreeRoot.beta = beta; 
-    gameTreeRoot.considered = true;
+function min(root: Node, node: Node, alpha: number, beta: number, depth: number, animations: Node[]) {
+    node.alpha = alpha; 
+    node.beta = beta; 
+    node.considered = true;
 
     animations.push(deepTreeCopy(root)); 
 
     if (depth === TREE_DEPTH) {
-        return gameTreeRoot.currentValue;
+        return node.currentValue;
     } else {
-        const children = [gameTreeRoot.left, gameTreeRoot.right];
+        const children = [node.left, node.right];
 
-        gameTreeRoot.currentValue = Number.POSITIVE_INFINITY;
+        node.currentValue = Number.POSITIVE_INFINITY;
 
         for (let i = 0; i < children.length; i++) {
-            gameTreeRoot.currentValue = Math.min(gameTreeRoot.currentValue, max(children[i], gameTreeRoot.alpha, gameTreeRoot.beta, depth + 1, animations));
-            gameTreeRoot.beta = Math.min(gameTreeRoot.beta, gameTreeRoot.currentValue);
+            node.currentValue = Math.min(node.currentValue, max(root, children[i], node.alpha, node.beta, depth + 1, animations));
+            node.beta = Math.min(node.beta, node.currentValue);
             
-            if (gameTreeRoot.alpha >= gameTreeRoot.beta) {
+            if (node.alpha >= node.beta) {
                 break;
             }
         }    
 
         animations.push(deepTreeCopy(root)); 
 
-        return gameTreeRoot.currentValue;
+        return node.currentValue;
     } 
 }
 

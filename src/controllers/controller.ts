@@ -1,16 +1,15 @@
-import { newTree, runMinimax } from "../models/minimax";
-import { TREE_DEPTH } from "../models/tree";
-import { animateMinimax, drawTree, initView, ViewMessage } from "../views/view";
-
-// Given a message from the view, return some action
-const viewMessageToAction = new Map([
-    [ViewMessage.Run, () => animateMinimax(TREE_DEPTH, runMinimax())],
-    [ViewMessage.NewTree, () => drawTree(TREE_DEPTH, newTree())]
-]);
+import { newSimulation } from "../models/minimax";
+import { animateMinimax, initView, updateTree, ViewMessage } from "../views/view";
 
 window.addEventListener("load", () => {
     initView(messageFromView);
 });
+
+// Given a message from the view, return some action
+const viewMessageToAction = new Map([
+    [ViewMessage.Run, () => animateMinimax()],
+    [ViewMessage.NewTree, () => updateTree(newSimulation())]
+]);
 
 // Execute an action given a message from the view
 function messageFromView(message: ViewMessage) {
