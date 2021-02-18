@@ -16,16 +16,35 @@
         <div id="color-codes">
             <span>🟥 Not Considered</span>
             <span>🟩 Considered</span>
-        </div>     
+        </div>
 
         <div id="menu">
             <button id="run">Run Animation</button>
             <button id="new-tree">New Tree</button>
             <button id="step-back">Step Back</button>
             <button id="step-forward">Step Forward</button>
+            <button id="add-values">Add Custom Values</button>
         </div>
-
         <canvas id="canvas"></canvas>
+    </div>
+
+    <div id="input-modal">
+        <div>
+            <p class="modal-info">
+                Enter numbers seperated by commas, and they'll display on the leaves of the tree in left to right order.
+            </p>
+
+            <p class="modal-info">
+                If you enter too many values only the first 16 ones will be used, if you don't enter enough it'll randomly generate the rest.
+            </p>
+        </div>
+        <div>
+            <input id="input-values" type="text"></input>
+        </div>
+        <div>
+            <button id="submit-values">Add Values</button>
+            <button id="close-modal">Close</button>
+        </div>
     </div>
 </body>
 

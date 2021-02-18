@@ -29,11 +29,7 @@ const colors = {
 }
 
 // Map a nodes value onto the string used to display it
-const numberToTextContent = new Map([
-    [Number.POSITIVE_INFINITY, "∞"],
-    [Number.NEGATIVE_INFINITY, "-∞"],
-    [null, " "]
-]);
+const emptyValues = new Set([Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, null]);
 
 // Reference to the canvas
 const canvas = <HTMLCanvasElement>document.getElementById("canvas");
@@ -42,7 +38,7 @@ const canvas = <HTMLCanvasElement>document.getElementById("canvas");
 const context = canvas.getContext("2d");
 
 // Function we use to talk to controller, passed in as a callback through initView()
-let notifyController: (message: ViewMessage) => void;
+let notifyController: (message: ViewMessage, data: unknown) => void;
 
 // The current list of animations we're working with
 let animations: Node[];
@@ -57,13 +53,13 @@ export function updateTree(anims: Node[]) {
     drawTree();
 }
 
-export function initView(notif: (message: ViewMessage) => void) {
+export function initView(notif: (message: ViewMessage, data: unknown) => void) {
     notifyController = notif;
 
     initCanvas();
     initEventListeners();
 
-    notifyController(ViewMessage.NewTree);
+    notifyController(ViewMessage.NewTree, []);
 }
 
 export async function animateMinimax() {
@@ -116,10 +112,73 @@ function initCanvas() {
 }
 
 function initEventListeners() {
-    document.getElementById("run").addEventListener("click", () => notifyController(ViewMessage.Run));
-    document.getElementById("new-tree").addEventListener("click", () => notifyController(ViewMessage.NewTree));
+    document.getElementById("run").addEventListener("click", () => notifyController(ViewMessage.Run, null));
+    document.getElementById("new-tree").addEventListener("click", () => notifyController(ViewMessage.NewTree, []));
     document.getElementById("step-back").addEventListener("click", drawPrevtree);
     document.getElementById("step-forward").addEventListener("click", drawNextTree);
+    document.getElementById("add-values").addEventListener("click", showInputModal);
+    document.getElementById("close-modal").addEventListener("click", closeInputModal);
+    document.getElementById("submit-values").addEventListener("click", submitValues);
+}
+
+function submitValues() {
+    const inputValuesDOM = <HTMLInputElement>document.getElementById("input-values");
+    const values = parseValues(inputValuesDOM.value);
+
+    if (values === null) {
+        alert("Input is not in a valid comma seperated format");
+    } else if (values.length > 0) {
+        notifyController(ViewMessage.NewTree, values);     
+    }
+
+    closeInputModal();
+}
+
+function parseValues(values: string) {
+    let parsedValues: number[];
+
+    values = removeInvalidChars(values);
+    values = removeTrailingCommas(values);
+    
+    try {
+        parsedValues = JSON.parse(`[${values}]`);
+    } catch (error) {
+        parsedValues = null;
+    }
+
+    return parsedValues;
+}
+
+function removeInvalidChars(values: string) {
+    return values.replace(/[^,0-9]/g, '');
+}
+
+function removeTrailingCommas(values: string) {
+    if (values[0] === ',') {
+        values = values.slice(1);
+    }
+
+    if (values[values.length - 1] === ',') {
+        values = values.slice(0, values.length - 1);
+    }
+
+    return values;
+}
+
+function closeInputModal() {
+    const inputModalDOM = document.getElementById("input-modal");
+    const pageDOM = document.getElementById("page");
+
+    inputModalDOM.style.visibility = "hidden";
+    pageDOM.style.opacity = "1";
+}
+
+function showInputModal() {
+    const inputModalDOM = document.getElementById("input-modal");
+    const pageDOM = document.getElementById("page");
+
+    inputModalDOM.style.visibility = "visible";
+    pageDOM.style.opacity = "0.2";
 }
 
 function hideMenu() {
@@ -133,8 +192,8 @@ function showMenu() {
 // Draw a binary tree dynamically depending on depth
 function drawBinaryTree(x: number, y: number, depth: number, gameNode: Node) {
     const root = node(x, y);
-    
-    paintNode(x, y, root, gameNode);
+
+    paintNode(x, y, root, gameNode, depth);
 
     if (depth < TREE_DEPTH) {
         const leftChildXCoord = getChildXCoordinate(x, depth, -1);
@@ -157,7 +216,7 @@ function drawBinaryTree(x: number, y: number, depth: number, gameNode: Node) {
 function getChildXCoordinate(x: number, depth: number, directionOffset: number) {
     const depthScale = TREE_DEPTH - depth;
 
-    return x + (directionOffset *  NODE_RADIUS * Math.pow(2, depthScale + 1));
+    return x + (directionOffset * NODE_RADIUS * Math.pow(2, depthScale + 1));
 }
 
 function getChildYCoordinate(y: number) {
@@ -178,9 +237,9 @@ function paintOrientation(x: number, y: number, depth: number) {
 }
 
 // Paint a node and its value on the screen
-function paintNode(x: number, y: number, root: Path2D, gameNode: Node) {
+function paintNode(x: number, y: number, root: Path2D, gameNode: Node, depth: number) {
     paintConsidered(root, gameNode);
-    paintCurrentValue(x, y, gameNode.currentValue);
+    paintCurrentValue(x, y, gameNode.currentValue, depth);
 }
 
 // Handle the nodes colour depending on whether it has been considered
@@ -189,25 +248,29 @@ function paintConsidered(root: Path2D, gameNode: Node) {
     context.fill(root);
 }
 
-function paintCurrentValue(x: number, y: number, val: number) {
+function paintCurrentValue(x: number, y: number, val: number, depth: number) {
     const text = valueToStringRepresentation(val);
     const fontScale = 3;
     const textYScale = 6;
+    const horizScale = 3;
 
     context.font = `${NODE_RADIUS * fontScale}px Arial`;
     context.fillStyle = colors.currentValue;
-    context.fillText(text, x - NODE_RADIUS * 1.5, y + textYScale * NODE_RADIUS);
+
+    if (depth === TREE_DEPTH - 1) {      
+        context.fillText(text, x + NODE_RADIUS * horizScale, y + fontScale * textYScale);
+    } else {
+        context.fillText(text, x - NODE_RADIUS * 1.5, y + textYScale * NODE_RADIUS);
+    }
 }
 
 // Convert a value to a string used to display it on the canvas
 function valueToStringRepresentation(val: number) {
-    let text = numberToTextContent.get(val);
-
-    if (text === undefined) {
-        text = JSON.stringify(val);
+    if (emptyValues.has(val)) {
+        return "";
+    } else {
+        return val.toString();
     }
-
-    return text;
 }
 
 // Draw a line from (xStart, yStart) to (xEnd, yEnd)

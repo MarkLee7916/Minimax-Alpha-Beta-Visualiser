@@ -1,3 +1,7 @@
+* {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
 #page {
   position: absolute;
   top: 0;
@@ -7,7 +11,6 @@
   background-color: paleturquoise;
   text-align: center;
   overflow: auto;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 #color-codes {
@@ -33,6 +36,35 @@ button:hover {
 #color-codes > span {
   padding-left: 0.5vw;
   padding-right: 0.5vw;
+}
+
+#input-modal {
+  position: absolute;
+  left: 10vw;
+  margin: auto;
+  border-style: solid;
+  border-width: 1px;
+  text-align: center;
+  height: 50vh;
+  width: 80vw;
+  top: 20vh;
+  background-color: white;
+  visibility: hidden;
+}
+
+#input-modal > * {
+  visibility: inherit;
+  margin-top: 1vh;
+  margin-bottom: 5vh;
+}
+
+#input-values {
+  width: 80%;
+  background-color: white;
+}
+
+.modal-info {
+  font-size: 2.5vh;
 }
 
 #canvas {

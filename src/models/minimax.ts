@@ -1,8 +1,8 @@
 import { Node, buildTree, deepTreeCopy, TREE_DEPTH } from "../tree";
 
-export function newSimulation() {
+export function newSimulation(values: number[]) {
     const animations: Node[] = [];
-    const root = buildTree();
+    const root = buildTree(values);
 
     max(root, root, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 0, animations);
 

@@ -11,20 +11,28 @@ export interface Node {
     right: Node
 }
 
-export function buildTree() {
-    return buildTreeRecurse(TREE_DEPTH);
+export function buildTree(values: number[]) {
+    fillValues(values);
 
-    function buildTreeRecurse(depth: number) {
+    return buildTreeRecurse(TREE_DEPTH, values);
+
+    function buildTreeRecurse(depth: number, values: number[]) {
         const root = deepTreeCopy(emptyNode);
 
         if (depth === 0) {
-            root.currentValue = randomIntBetween(1, 100);
+            root.currentValue = values.shift()
         } else {
-            root.left = buildTreeRecurse(depth - 1);
-            root.right = buildTreeRecurse(depth - 1);
+            root.left = buildTreeRecurse(depth - 1, values);
+            root.right = buildTreeRecurse(depth - 1, values);
         }
 
         return root;
+    }
+
+    function fillValues(values: number[]) {
+        while (values.length < Math.pow(2, TREE_DEPTH)) {
+            values.push(randomIntBetween(1, 100));
+        }
     }
 }
 

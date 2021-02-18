@@ -7,17 +7,17 @@ window.addEventListener("load", () => {
 
 // Given a message from the view, return some action
 const viewMessageToAction = new Map([
-    [ViewMessage.Run, () => animateMinimax()],
-    [ViewMessage.NewTree, () => updateTree(newSimulation())]
+    [ViewMessage.Run, _ => animateMinimax()],
+    [ViewMessage.NewTree, values => updateTree(newSimulation(values))]
 ]);
 
 // Execute an action given a message from the view
-function messageFromView(message: ViewMessage) {
+function messageFromView(message: ViewMessage, data: unknown) {
     const action = viewMessageToAction.get(message);
 
     if (action === undefined) {
         throw `Controller doesn't support message: ${message}`
     } else {
-        action();
+        action(data);
     }
 }

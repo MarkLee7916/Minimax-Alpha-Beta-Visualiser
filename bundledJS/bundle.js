@@ -8,17 +8,17 @@ window.addEventListener("load", function () {
 });
 // Given a message from the view, return some action
 var viewMessageToAction = new Map([
-    [0 /* Run */, function () { return view_1.animateMinimax(); }],
-    [1 /* NewTree */, function () { return view_1.updateTree(minimax_1.newSimulation()); }]
+    [0 /* Run */, function (_) { return view_1.animateMinimax(); }],
+    [1 /* NewTree */, function (values) { return view_1.updateTree(minimax_1.newSimulation(values)); }]
 ]);
 // Execute an action given a message from the view
-function messageFromView(message) {
+function messageFromView(message, data) {
     var action = viewMessageToAction.get(message);
     if (action === undefined) {
         throw "Controller doesn't support message: " + message;
     }
     else {
-        action();
+        action(data);
     }
 }
 
@@ -27,9 +27,9 @@ function messageFromView(message) {
 exports.__esModule = true;
 exports.newSimulation = void 0;
 var tree_1 = require("../tree");
-function newSimulation() {
+function newSimulation(values) {
     var animations = [];
-    var root = tree_1.buildTree();
+    var root = tree_1.buildTree(values);
     max(root, root, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, 0, animations);
     return animations;
 }
@@ -85,18 +85,24 @@ exports.__esModule = true;
 exports.deepTreeCopy = exports.buildTree = exports.TREE_DEPTH = void 0;
 var utils_1 = require("./utils");
 exports.TREE_DEPTH = 4;
-function buildTree() {
-    return buildTreeRecurse(exports.TREE_DEPTH);
-    function buildTreeRecurse(depth) {
+function buildTree(values) {
+    fillValues(values);
+    return buildTreeRecurse(exports.TREE_DEPTH, values);
+    function buildTreeRecurse(depth, values) {
         var root = deepTreeCopy(emptyNode);
         if (depth === 0) {
-            root.currentValue = utils_1.randomIntBetween(1, 100);
+            root.currentValue = values.shift();
         }
         else {
-            root.left = buildTreeRecurse(depth - 1);
-            root.right = buildTreeRecurse(depth - 1);
+            root.left = buildTreeRecurse(depth - 1, values);
+            root.right = buildTreeRecurse(depth - 1, values);
         }
         return root;
+    }
+    function fillValues(values) {
+        while (values.length < Math.pow(2, exports.TREE_DEPTH)) {
+            values.push(utils_1.randomIntBetween(1, 100));
+        }
     }
 }
 exports.buildTree = buildTree;
@@ -209,11 +215,7 @@ var colors = {
     orientation: "orange"
 };
 // Map a nodes value onto the string used to display it
-var numberToTextContent = new Map([
-    [Number.POSITIVE_INFINITY, "∞"],
-    [Number.NEGATIVE_INFINITY, "-∞"],
-    [null, " "]
-]);
+var emptyValues = new Set([Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, null]);
 // Reference to the canvas
 var canvas = document.getElementById("canvas");
 // Reference to the 2D context of the canvas. This is what we actually work with when we draw things on the canvas
@@ -234,7 +236,7 @@ function initView(notif) {
     notifyController = notif;
     initCanvas();
     initEventListeners();
-    notifyController(1 /* NewTree */);
+    notifyController(1 /* NewTree */, []);
 }
 exports.initView = initView;
 function animateMinimax() {
@@ -288,10 +290,60 @@ function initCanvas() {
     canvas.style.height = canvas.height + "px";
 }
 function initEventListeners() {
-    document.getElementById("run").addEventListener("click", function () { return notifyController(0 /* Run */); });
-    document.getElementById("new-tree").addEventListener("click", function () { return notifyController(1 /* NewTree */); });
+    document.getElementById("run").addEventListener("click", function () { return notifyController(0 /* Run */, null); });
+    document.getElementById("new-tree").addEventListener("click", function () { return notifyController(1 /* NewTree */, []); });
     document.getElementById("step-back").addEventListener("click", drawPrevtree);
     document.getElementById("step-forward").addEventListener("click", drawNextTree);
+    document.getElementById("add-values").addEventListener("click", showInputModal);
+    document.getElementById("close-modal").addEventListener("click", closeInputModal);
+    document.getElementById("submit-values").addEventListener("click", submitValues);
+}
+function submitValues() {
+    var inputValuesDOM = document.getElementById("input-values");
+    var values = parseValues(inputValuesDOM.value);
+    if (values === null) {
+        alert("Input is not in a valid comma seperated format");
+    }
+    else if (values.length > 0) {
+        notifyController(1 /* NewTree */, values);
+    }
+    closeInputModal();
+}
+function parseValues(values) {
+    var parsedValues;
+    values = removeInvalidChars(values);
+    values = removeTrailingCommas(values);
+    try {
+        parsedValues = JSON.parse("[" + values + "]");
+    }
+    catch (error) {
+        parsedValues = null;
+    }
+    return parsedValues;
+}
+function removeInvalidChars(values) {
+    return values.replace(/[^,0-9]/g, '');
+}
+function removeTrailingCommas(values) {
+    if (values[0] === ',') {
+        values = values.slice(1);
+    }
+    if (values[values.length - 1] === ',') {
+        values = values.slice(0, values.length - 1);
+    }
+    return values;
+}
+function closeInputModal() {
+    var inputModalDOM = document.getElementById("input-modal");
+    var pageDOM = document.getElementById("page");
+    inputModalDOM.style.visibility = "hidden";
+    pageDOM.style.opacity = "1";
+}
+function showInputModal() {
+    var inputModalDOM = document.getElementById("input-modal");
+    var pageDOM = document.getElementById("page");
+    inputModalDOM.style.visibility = "visible";
+    pageDOM.style.opacity = "0.2";
 }
 function hideMenu() {
     document.getElementById("menu").style.visibility = "hidden";
@@ -302,7 +354,7 @@ function showMenu() {
 // Draw a binary tree dynamically depending on depth
 function drawBinaryTree(x, y, depth, gameNode) {
     var root = node(x, y);
-    paintNode(x, y, root, gameNode);
+    paintNode(x, y, root, gameNode, depth);
     if (depth < tree_1.TREE_DEPTH) {
         var leftChildXCoord = getChildXCoordinate(x, depth, -1);
         var rightChildXCoord = getChildXCoordinate(x, depth, 1);
@@ -334,30 +386,37 @@ function paintOrientation(x, y, depth) {
     context.fillText(orientationStr, x - horizScale * NODE_RADIUS, y);
 }
 // Paint a node and its value on the screen
-function paintNode(x, y, root, gameNode) {
+function paintNode(x, y, root, gameNode, depth) {
     paintConsidered(root, gameNode);
-    paintCurrentValue(x, y, gameNode.currentValue);
+    paintCurrentValue(x, y, gameNode.currentValue, depth);
 }
 // Handle the nodes colour depending on whether it has been considered
 function paintConsidered(root, gameNode) {
     context.fillStyle = gameNode.considered ? colors.considered : colors.notConsidered;
     context.fill(root);
 }
-function paintCurrentValue(x, y, val) {
+function paintCurrentValue(x, y, val, depth) {
     var text = valueToStringRepresentation(val);
     var fontScale = 3;
     var textYScale = 6;
+    var horizScale = 3;
     context.font = NODE_RADIUS * fontScale + "px Arial";
     context.fillStyle = colors.currentValue;
-    context.fillText(text, x - NODE_RADIUS * 1.5, y + textYScale * NODE_RADIUS);
+    if (depth === tree_1.TREE_DEPTH - 1) {
+        context.fillText(text, x + NODE_RADIUS * horizScale, y + fontScale * textYScale);
+    }
+    else {
+        context.fillText(text, x - NODE_RADIUS * 1.5, y + textYScale * NODE_RADIUS);
+    }
 }
 // Convert a value to a string used to display it on the canvas
 function valueToStringRepresentation(val) {
-    var text = numberToTextContent.get(val);
-    if (text === undefined) {
-        text = JSON.stringify(val);
+    if (emptyValues.has(val)) {
+        return "";
     }
-    return text;
+    else {
+        return val.toString();
+    }
 }
 // Draw a line from (xStart, yStart) to (xEnd, yEnd)
 function edge(xStart, yStart, xEnd, yEnd) {
