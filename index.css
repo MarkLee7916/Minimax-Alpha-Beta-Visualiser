@@ -19,7 +19,7 @@
 }
 
 button {
-  border: black;
+  border: 1px solid black;
   background-color: paleturquoise;
   color: black;
   font-size: 2vmin;
