@@ -19,9 +19,9 @@
 }
 
 button {
-  border: none;
-  background-color: #e1909b;
-  color: white;
+  border: black;
+  background-color: paleturquoise;
+  color: black;
   font-size: 2vmin;
   padding: 3vmin;
   border-radius: 10px;
@@ -29,7 +29,8 @@ button {
 }
 
 button:hover {
-  opacity: 0.2;
+  background-color: black;
+  color: paleturquoise;
   cursor: pointer;
 }
 
